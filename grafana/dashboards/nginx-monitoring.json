@@ -1,0 +1,11 @@
+{
+  "annotations":{"list":[]},"editable":false,"graphTooltip":1,
+  "panels":[
+    {"type":"stat","title":"Nginx target status","id":1,"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"expr":"nginx_up","refId":"A"}],"gridPos":{"h":8,"w":8,"x":0,"y":0}},
+    {"type":"stat","title":"Active connections","id":2,"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"expr":"nginx_connections_active","refId":"A"}],"gridPos":{"h":8,"w":8,"x":8,"y":0}},
+    {"type":"stat","title":"Total HTTP requests","id":3,"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"expr":"nginx_http_requests_total","refId":"A"}],"gridPos":{"h":8,"w":8,"x":16,"y":0}},
+    {"type":"timeseries","title":"HTTP request rate","id":4,"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"expr":"rate(nginx_http_requests_total[5m])","legendFormat":"requests per second","refId":"A"}],"gridPos":{"h":9,"w":24,"x":0,"y":8}}
+  ],
+  "schemaVersion":41,"tags":["de3","nginx"],"templating":{"list":[]},"time":{"from":"now-30m","to":"now"},"title":"DE3 Nginx Monitoring","uid":"de3-nginx","version":1
+}
+

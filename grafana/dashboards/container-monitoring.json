@@ -1,0 +1,10 @@
+{
+  "annotations":{"list":[]},"editable":false,"graphTooltip":1,
+  "panels":[
+    {"type":"stat","title":"Containers reachable","id":1,"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"expr":"sum(probe_success)","refId":"A"}],"gridPos":{"h":8,"w":8,"x":0,"y":0}},
+    {"type":"stat","title":"Total containers probed","id":2,"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"expr":"count(probe_success)","refId":"A"}],"gridPos":{"h":8,"w":8,"x":8,"y":0}},
+    {"type":"timeseries","title":"Container availability","id":3,"datasource":{"type":"prometheus","uid":"prometheus"},"fieldConfig":{"defaults":{"min":0,"max":1}},"targets":[{"expr":"probe_success","legendFormat":"{{instance}}","refId":"A"}],"gridPos":{"h":9,"w":24,"x":0,"y":8}}
+  ],
+  "schemaVersion":41,"tags":["de3","container"],"templating":{"list":[]},"time":{"from":"now-30m","to":"now"},"title":"DE3 Container Monitoring","uid":"de3-containers","version":1
+}
+

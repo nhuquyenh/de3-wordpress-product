@@ -159,6 +159,133 @@ services:
       retries: 12
       start_period: 20s
 
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:1.4.2
+    restart: unless-stopped
+    command:
+      - --nginx.scrape-uri=http://nginx:8080/stub_status
+    networks:
+      - frontend
+      - monitoring
+    depends_on:
+      nginx:
+        condition: service_healthy
+    expose:
+      - "9113"
+    read_only: true
+    user: "65534:65534"
+    security_opt:
+      - no-new-privileges:true
+
+  mysql-exporter:
+    image: prom/mysqld-exporter:v0.17.2
+    restart: unless-stopped
+    command:
+      - --config.my-cnf=/run/secrets/mysql_exporter_config
+      - --collect.global_status
+      - --collect.info_schema.tables
+    secrets:
+      - source: mysql_exporter_config
+        target: mysql_exporter_config
+    networks:
+      - backend
+      - monitoring
+    depends_on:
+      mysql:
+        condition: service_healthy
+    expose:
+      - "9104"
+    read_only: true
+    user: "65534:65534"
+    security_opt:
+      - no-new-privileges:true
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.27.0
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/blackbox_exporter/config.yml
+    volumes:
+      - ./prometheus/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+    networks:
+      - frontend
+      - backend
+      - monitoring
+    expose:
+      - "9115"
+    read_only: true
+    user: "65534:65534"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:-9091}:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - monitoring
+    depends_on:
+      - blackbox-exporter
+      - nginx-exporter
+      - mysql-exporter
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SECURITY_DISABLE_GRAVATAR: "true"
+    secrets:
+      - grafana_admin_password
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3001}:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - monitoring
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    user: "472:472"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
 secrets:
   mysql_root_password:
     file: ./secrets/mysql_root_password
@@ -168,11 +295,17 @@ secrets:
     file: ./secrets/mysql_exporter_password
   wp_admin_password:
     file: ./secrets/wp_admin_password
+  mysql_exporter_config:
+    file: ./secrets/mysql_exporter.cnf
+  grafana_admin_password:
+    file: ./secrets/grafana_admin_password
 
 volumes:
   mysql_data:
   wordpress_data:
   nginx_logs:
+  prometheus_data:
+  grafana_data:
 
 networks:
   frontend:
@@ -180,4 +313,7 @@ networks:
   backend:
     driver: bridge
     internal: true
+  monitoring:
+    driver: bridge
+
 

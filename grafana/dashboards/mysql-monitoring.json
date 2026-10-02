@@ -1,0 +1,10 @@
+{
+  "annotations":{"list":[]},"editable":false,"graphTooltip":1,
+  "panels":[
+    {"type":"stat","title":"MySQL target status","id":1,"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"expr":"mysql_up","refId":"A"}],"gridPos":{"h":8,"w":8,"x":0,"y":0}},
+    {"type":"stat","title":"Connected threads","id":2,"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"expr":"mysql_global_status_threads_connected","refId":"A"}],"gridPos":{"h":8,"w":8,"x":8,"y":0}},
+    {"type":"stat","title":"WordPress database size","id":3,"datasource":{"type":"prometheus","uid":"prometheus"},"fieldConfig":{"defaults":{"unit":"bytes"}},"targets":[{"expr":"sum(mysql_info_schema_table_size{schema=\"wordpress\"})","refId":"A"}],"gridPos":{"h":8,"w":8,"x":16,"y":0}},
+    {"type":"timeseries","title":"MySQL queries per second","id":4,"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"expr":"rate(mysql_global_status_questions[5m])","legendFormat":"queries per second","refId":"A"}],"gridPos":{"h":9,"w":24,"x":0,"y":8}}
+  ],
+  "schemaVersion":41,"tags":["de3","mysql"],"templating":{"list":[]},"time":{"from":"now-30m","to":"now"},"title":"DE3 MySQL Monitoring","uid":"de3-mysql","version":1
+}
