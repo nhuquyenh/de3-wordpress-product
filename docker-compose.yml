@@ -1,0 +1,183 @@
+name: de3-wordpress-product
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_wordpress_password
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+      MYSQL_EXPORTER_PASSWORD_FILE: /run/secrets/mysql_exporter_password
+    secrets:
+      - mysql_root_password
+      - mysql_wordpress_password
+      - mysql_exporter_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - backend
+    expose:
+      - "3306"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$(cat /run/secrets/mysql_root_password) --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+
+  wordpress:
+    image: wordpress:6.8.3-php8.3-apache
+    restart: unless-stopped
+    environment:
+      WORDPRESS_DB_HOST: mysql:3306
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD_FILE: /run/secrets/mysql_wordpress_password
+      WORDPRESS_CONFIG_EXTRA: |
+        define('DISALLOW_FILE_EDIT', true);
+        define('FORCE_SSL_ADMIN', false);
+        define('WP_AUTO_UPDATE_CORE', 'minor');
+    secrets:
+      - mysql_wordpress_password
+    volumes:
+      - wordpress_data:/var/www/html
+      - ./wordpress/de3-product-showcase:/var/www/html/wp-content/plugins/de3-product-showcase:ro
+    networks:
+      - frontend
+      - backend
+    expose:
+      - "80"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php -r '$$s=@fsockopen(\"127.0.0.1\",80); exit($$s?0:1);'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+
+  wordpress-init:
+    image: wordpress:cli-2.12-php8.3
+    restart: "no"
+    user: "33:33"
+    environment:
+      WORDPRESS_DB_HOST: mysql:3306
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD_FILE: /run/secrets/mysql_wordpress_password
+      WP_SITE_TITLE: ${WP_SITE_TITLE:-DE3 Product Showcase}
+      WP_ADMIN_USER: ${WP_ADMIN_USER:-de3_admin}
+      WP_ADMIN_EMAIL: ${WP_ADMIN_EMAIL:-student@example.com}
+    secrets:
+      - mysql_wordpress_password
+      - wp_admin_password
+    volumes:
+      - wordpress_data:/var/www/html
+      - ./wordpress/de3-product-showcase:/var/www/html/wp-content/plugins/de3-product-showcase:ro
+    networks:
+      - backend
+    depends_on:
+      wordpress:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        if ! wp core is-installed --path=/var/www/html; then
+          wp core install --path=/var/www/html \
+            --url=http://localhost:8180 \
+            --title="$$WP_SITE_TITLE" \
+            --admin_user="$$WP_ADMIN_USER" \
+            --admin_password="$$(cat /run/secrets/wp_admin_password)" \
+            --admin_email="$$WP_ADMIN_EMAIL" \
+            --skip-email
+        fi
+        wp plugin activate de3-product-showcase --path=/var/www/html
+        wp rewrite structure '/%postname%/' --hard --path=/var/www/html
+        wp option update home 'http://localhost:8180' --path=/var/www/html
+        wp option update siteurl 'http://localhost:8180' --path=/var/www/html
+    security_opt:
+      - no-new-privileges:true
+
+  phpmyadmin:
+    image: phpmyadmin:5.2.2
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 0
+      UPLOAD_LIMIT: 32M
+    ports:
+      - "127.0.0.1:${PHPMYADMIN_PORT:-8181}:80"
+    networks:
+      - frontend
+      - backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+
+  nginx:
+    image: nginx:1.28-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${WORDPRESS_PORT:-8180}:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - nginx_logs:/var/log/nginx
+    networks:
+      - frontend
+    depends_on:
+      wordpress:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+secrets:
+  mysql_root_password:
+    file: ./secrets/mysql_root_password
+  mysql_wordpress_password:
+    file: ./secrets/mysql_wordpress_password
+  mysql_exporter_password:
+    file: ./secrets/mysql_exporter_password
+  wp_admin_password:
+    file: ./secrets/wp_admin_password
+
+volumes:
+  mysql_data:
+  wordpress_data:
+  nginx_logs:
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+    internal: true
+

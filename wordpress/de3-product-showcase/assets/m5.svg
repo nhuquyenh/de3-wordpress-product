@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+  <defs><linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#ecfdf5"/><stop offset="1" stop-color="#f8fafc"/></linearGradient><linearGradient id="mouse" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#0f766e"/><stop offset="1" stop-color="#064e3b"/></linearGradient></defs>
+  <rect width="800" height="500" fill="url(#bg)"/><circle cx="570" cy="110" r="82" fill="#a7f3d0" opacity=".45"/><ellipse cx="400" cy="399" rx="155" ry="25" fill="#064e3b" opacity=".13"/>
+  <path d="M400 78c-108 0-176 84-176 190v40c0 92 72 128 176 128s176-36 176-128v-40C576 162 508 78 400 78Z" fill="url(#mouse)"/>
+  <path d="M400 79v153" stroke="#99f6e4" stroke-width="5"/><rect x="382" y="127" width="36" height="70" rx="18" fill="#5eead4"/><rect x="389" y="138" width="22" height="30" rx="11" fill="#064e3b"/>
+  <path d="M285 300c45 24 81 35 115 35s70-11 115-35" fill="none" stroke="#2dd4bf" stroke-width="7" opacity=".55"/>
+  <text x="400" y="474" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#064e3b">M5</text>
+</svg>

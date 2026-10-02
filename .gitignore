@@ -1,0 +1,9 @@
+.env
+credentials-local.txt
+secrets/*
+!secrets/.gitkeep
+docs/report/_qa/
+docs/screenshots/*.png
+docs/screenshots/*.jpg
+docs/screenshots/*.jpeg
+
