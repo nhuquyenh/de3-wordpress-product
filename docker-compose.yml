@@ -129,6 +129,10 @@ services:
   nginx:
     image: nginx:1.28-alpine
     restart: unless-stopped
+    command:
+      - /bin/sh
+      - -c
+      - rm -f /var/log/nginx/access.log /var/log/nginx/error.log && touch /var/log/nginx/access.log /var/log/nginx/error.log && exec nginx -g 'daemon off;'
     ports:
       - "127.0.0.1:${WORDPRESS_PORT:-8180}:80"
     volumes:
@@ -136,6 +140,7 @@ services:
       - nginx_logs:/var/log/nginx
     networks:
       - frontend
+      - monitoring
     depends_on:
       wordpress:
         condition: service_healthy
@@ -286,6 +291,49 @@ services:
       retries: 12
       start_period: 30s
 
+  loki:
+    image: grafana/loki:3.5.3
+    restart: unless-stopped
+    command:
+      - -config.file=/etc/loki/local-config.yml
+    ports:
+      - "127.0.0.1:${LOKI_PORT:-3101}:3100"
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/local-config.yml:ro
+      - loki_data:/loki
+    networks:
+      - monitoring
+    read_only: true
+    tmpfs:
+      - /tmp
+    user: "10001:10001"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  promtail:
+    image: grafana/promtail:3.5.3
+    restart: unless-stopped
+    command:
+      - -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - nginx_logs:/var/log/nginx:ro
+      - promtail_positions:/var/lib/promtail
+    networks:
+      - monitoring
+    depends_on:
+      - loki
+    read_only: true
+    tmpfs:
+      - /tmp
+    user: "0:0"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
 secrets:
   mysql_root_password:
     file: ./secrets/mysql_root_password
@@ -306,6 +354,8 @@ volumes:
   nginx_logs:
   prometheus_data:
   grafana_data:
+  loki_data:
+  promtail_positions:
 
 networks:
   frontend:

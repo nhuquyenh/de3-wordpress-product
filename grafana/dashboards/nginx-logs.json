@@ -1,0 +1,7 @@
+{
+  "annotations":{"list":[]},"editable":false,"graphTooltip":1,
+  "panels":[
+    {"type":"logs","title":"Nginx access logs","id":1,"datasource":{"type":"loki","uid":"loki"},"targets":[{"expr":"{job=\"nginx\"}","refId":"A"}],"options":{"showTime":true,"showLabels":true,"wrapLogMessage":true},"gridPos":{"h":16,"w":24,"x":0,"y":0}}
+  ],
+  "schemaVersion":41,"tags":["de3","loki","nginx"],"templating":{"list":[]},"time":{"from":"now-30m","to":"now"},"title":"DE3 Nginx Logs","uid":"de3-nginx-logs","version":1
+}
